@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusFlow — Premium Productivity & Gamified Focus Tracker</title>
+  <meta name="description" content="A state-of-the-art gamified focus tracker with custom ambient sound synthesizers, deep visual SVG analytics, achievement tracking, and fluid glassmorphic styling.">
+  
+  <!-- FontAwesome Icons & Stylesheet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="styles.css?v=2.7">
+</head>
+<body class="theme-focus">
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div>
+        <div class="logo" id="app-logo">
+          <i class="fa-solid fa-fire"></i>
+          <span>FocusFlow</span>
+        </div>
+        
+        <nav>
+          <ul class="nav-menu">
+            <li class="nav-item">
+              <a class="nav-link active" data-screen="timer-screen" id="nav-timer">
+                <i class="fa-solid fa-hourglass-half"></i>
+                <span>Focus Timer</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-screen="dashboard-screen" id="nav-dashboard">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-screen="history-screen" id="nav-history">
+                <i class="fa-solid fa-history"></i>
+                <span>History</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-screen="achievements-screen" id="nav-achievements">
+                <i class="fa-solid fa-trophy"></i>
+                <span>Achievements</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-screen="settings-screen" id="nav-settings">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Settings</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      
+      <!-- Gamification Experience Widget with Profiles -->
+      <div class="user-level-card" id="user-level-card">
+        <div id="user-profile-display-view">
+          <div class="user-level-header">
+            <span class="user-level-title" id="sidebar-username" style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary);">Guest</span>
+            <span class="user-level-badge" id="sidebar-level-badge">Level 1</span>
+          </div>
+          <div style="margin-top: 4px; margin-bottom: 8px;">
+            <button id="btn-change-user" style="background: transparent; border: none; color: var(--accent-primary); font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0;">
+              <i class="fa-solid fa-user-pen"></i> Switch Profile
+            </button>
+          </div>
+        </div>
+        
+        <div id="user-profile-edit-view" style="display: none; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">ENTER PROFILE NAME</label>
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="username-input-field" class="input-field" style="padding: 6px 10px; font-size: 0.8rem; margin: 0;" placeholder="e.g. John" autocomplete="off">
+            <button id="btn-save-username" class="btn-primary" style="padding: 6px 12px; width: auto; font-size: 0.8rem; border-radius: var(--radius-sm);"><i class="fa-solid fa-check"></i></button>
+          </div>
+        </div>
+
+        <div class="xp-progress-container">
+          <div class="xp-progress-bar" id="sidebar-xp-bar" style="width: 0%;"></div>
+        </div>
+        <div class="xp-text" id="sidebar-xp-text">0 / 100 XP</div>
+      </div>
+    </aside>
+
+    <!-- Main Content Screens Container -->
+    <main class="main-content">
+      
+      <!-- ==========================================
+           1. TIMER SCREEN
+           ========================================== -->
+      <section class="screen active" id="timer-screen">
+        <div class="screen-header">
+          <h1>Productivity Timer</h1>
+          <p>Commit to deep concentration, gather XP, and level up your focus profile.</p>
+        </div>
+        
+        <div class="timer-container">
+          <!-- Left Main Focus Board -->
+          <div class="focus-panel">
+            <!-- Mode Selectors -->
+            <div class="timer-mode-selector">
+              <button class="mode-btn active" data-mode="pomodoro" id="btn-mode-pomo">Pomodoro</button>
+              <button class="mode-btn" data-mode="short-break" id="btn-mode-short">Break Mode</button>
+              <button class="mode-btn" data-mode="working-time" id="btn-mode-working">Working Mode</button>
+              <button class="mode-btn" data-mode="stopwatch" id="btn-mode-stopwatch">Stopwatch</button>
+            </div>
+            
+            <!-- Circular Digital Clock UI -->
+            <div class="timer-visual-wrapper">
+              <svg class="timer-svg" viewBox="0 0 300 300">
+                <defs>
+                  <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="var(--accent-primary)" />
+                    <stop offset="100%" stop-color="var(--accent-secondary)" />
+                  </linearGradient>
+                </defs>
+                <circle class="timer-circle-bg" cx="150" cy="150" r="140"></circle>
+                <circle class="timer-circle-progress" id="timer-progress-ring" cx="150" cy="150" r="140"></circle>
+              </svg>
+              
+              <div class="timer-digits-container">
+                <div class="timer-digits" id="timer-display-digits">25:00</div>
+                <div class="timer-label" id="timer-display-label">Deep Focus</div>
+              </div>
+            </div>
+            
+            <!-- Active Task Pill Display -->
+            <div class="active-task-display">
+              <div class="active-task-pill" id="timer-active-task-pill">
+                <i class="fa-solid fa-hashtag"></i>
+                <span id="timer-active-task-text">No active task set</span>
+              </div>
+            </div>
+            
+            <!-- Timer Controls -->
+            <div class="timer-controls">
+              <button class="control-btn control-btn-secondary" id="btn-timer-reset" title="Reset Session" disabled>
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+              <button class="control-btn control-btn-main" id="btn-timer-start-pause" title="Start Tracking">
+                <i class="fa-solid fa-play" id="timer-play-icon"></i>
+              </button>
+              <button class="control-btn control-btn-secondary" id="btn-timer-finish" title="Complete Session" disabled>
+                <i class="fa-solid fa-check"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Right Input & Agenda Panels -->
+          <div class="config-panel">
+            
+            <!-- Daily Agenda Checklist Card -->
+            <div class="task-form-card" id="daily-checklist-card">
+              <h2><i class="fa-solid fa-list-check"></i> Daily Agenda</h2>
+              
+              <div style="display: flex; gap: 8px; margin-bottom: 1.2rem;">
+                <input type="text" id="new-todo-input" class="input-field" style="margin: 0; padding: 12px 16px;" placeholder="Add a new agenda task..." autocomplete="off">
+                <button id="btn-add-todo" class="btn-primary" style="width: auto; padding: 12px 18px; border-radius: var(--radius-sm);" title="Add Task"><i class="fa-solid fa-plus"></i></button>
+              </div>
+              
+              <div id="todo-list-container" style="display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                <!-- Filled dynamically via app.js -->
+              </div>
+            </div>
+            
+            <!-- Task Creation Card -->
+            <div class="task-form-card">
+              <h2><i class="fa-solid fa-list-check"></i> Define Objective</h2>
+              
+              <div class="input-group">
+                <label for="task-input-field">What are you working on?</label>
+                <input type="text" id="task-input-field" class="input-field" placeholder="e.g., Designing user interface prototype..." autocomplete="off">
+              </div>
+              
+              <div class="input-group">
+                <label>Category Tag</label>
+                <div class="category-selection-container" id="category-pills-container">
+                  <div class="category-pill active" data-category="Coding">
+                    <i class="fa-solid fa-code"></i> Coding
+                  </div>
+                  <div class="category-pill" data-category="Learning">
+                    <i class="fa-solid fa-book"></i> Learning
+                  </div>
+                  <div class="category-pill" data-category="Design">
+                    <i class="fa-solid fa-palette"></i> Design
+                  </div>
+                  <div class="category-pill" data-category="Writing">
+                    <i class="fa-solid fa-pen-nib"></i> Writing
+                  </div>
+                  <div class="category-pill" data-category="Admin">
+                    <i class="fa-solid fa-envelope"></i> Admin
+                  </div>
+                  <div class="category-pill" data-category="Other">
+                    <i class="fa-solid fa-layer-group"></i> Other
+                  </div>
+                </div>
+              </div>
+              
+              <button class="btn-primary" id="btn-lock-task">
+                <i class="fa-solid fa-lock"></i>
+                <span id="btn-lock-text">Lock Focus Task</span>
+              </button>
+            </div>
+            
+            <!-- Cycle Configuration Slider Card -->
+            <div class="task-form-card" id="session-sliders-card">
+              <h2><i class="fa-solid fa-sliders"></i> Focus Adjuster</h2>
+              
+              <div class="input-group" id="work-slider-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label for="work-time-slider">Focus / Working Time</label>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="number" class="slider-value-input" id="work-time-input" min="1" max="120" value="25">
+                    <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">min</span>
+                  </div>
+                </div>
+                <input type="range" class="volume-slider slider-accent-control" id="work-time-slider" min="1" max="120" step="1" value="25">
+              </div>
+              
+              <div class="input-group" id="break-slider-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label for="break-time-slider">Break Time</label>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="number" class="slider-value-input" id="break-time-input" min="1" max="120" value="5">
+                    <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">min</span>
+                  </div>
+                </div>
+                <input type="range" class="volume-slider slider-accent-control" id="break-time-slider" min="1" max="120" step="1" value="5">
+              </div>
+              
+              <div class="focus-vibe-descriptor-box active-vibe" id="focus-vibe-box">
+                <div class="vibe-title" id="vibe-title">Classic Balanced</div>
+                <div class="vibe-desc" id="vibe-desc">Standard balanced productivity rhythm. The golden flow ratio.</div>
+              </div>
+            </div>
+            
+            <!-- Audio Soundscape Synthesizer -->
+            <div class="ambient-sound-card">
+              <h2><i class="fa-solid fa-headphones"></i> Soundscapes</h2>
+              
+              <div class="ambient-sound-list">
+                <div class="ambient-sound-row active" data-sound="none" id="ambient-none">
+                  <div class="ambient-sound-info">
+                    <div class="ambient-sound-icon"><i class="fa-solid fa-volume-xmark"></i></div>
+                    <div class="ambient-sound-name">Silence</div>
+                  </div>
+                </div>
+                
+                <div class="ambient-sound-row" data-sound="rain" id="ambient-rain">
+                  <div class="ambient-sound-info">
+                    <div class="ambient-sound-icon"><i class="fa-solid fa-cloud-showers-heavy"></i></div>
+                    <div class="ambient-sound-name">Forest Rain</div>
+                  </div>
+                  <i class="fa-solid fa-wave-square wave-indicator" style="display: none;"></i>
+                </div>
+                
+                <div class="ambient-sound-row" data-sound="drone" id="ambient-drone">
+                  <div class="ambient-sound-info">
+                    <div class="ambient-sound-icon"><i class="fa-solid fa-user-astronaut"></i></div>
+                    <div class="ambient-sound-name">Deep Cosmic Hum</div>
+                  </div>
+                </div>
+                
+                <div class="ambient-sound-row" data-sound="binaural" id="ambient-binaural">
+                  <div class="ambient-sound-info">
+                    <div class="ambient-sound-icon"><i class="fa-solid fa-brain"></i></div>
+                    <div class="ambient-sound-name">Alpha Binaural Beats (10Hz)</div>
+                  </div>
+                </div>
+                
+                <div class="ambient-sound-row" data-sound="gamma-binaural" id="ambient-gamma-binaural">
+                  <div class="ambient-sound-info">
+                    <div class="ambient-sound-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <div class="ambient-sound-name">Gamma Binaural Beats (40Hz)</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="ambient-volume-container">
+                <i class="fa-solid fa-volume-low" id="volume-icon"></i>
+                <input type="range" class="volume-slider" id="audio-volume-slider" min="0" max="1" step="0.05" value="0.5">
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           2. DASHBOARD SCREEN (ANALYTICS)
+           ========================================== -->
+      <section class="screen" id="dashboard-screen">
+        <div class="screen-header">
+          <h1>Productivity Insights</h1>
+          <p>Comprehensive overview of your concentration patterns, milestones, and daily activity logs.</p>
+        </div>
+        
+        <!-- Summary Cards Row -->
+        <div class="stats-overview-grid">
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="stats-total-time">0h 0m</div>
+              <div class="stat-title">Focus Time</div>
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon" style="background: var(--short-gradient);"><i class="fa-solid fa-fire"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="stats-streak">0 Days</div>
+              <div class="stat-title">Active Streak</div>
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon" style="background: var(--long-gradient);"><i class="fa-solid fa-check-double"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="stats-total-tasks">0</div>
+              <div class="stat-title">Tasks Completed</div>
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);"><i class="fa-solid fa-gem"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="stats-total-xp">0 XP</div>
+              <div class="stat-title">Focus Points</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Graphical Dashboards Grid -->
+        <div class="analytics-chart-panel">
+          
+          <!-- Bar Graph: Weekly Focus Times -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div class="chart-card-title">Daily Focus Breakdown (Last 7 Days)</div>
+            </div>
+            
+            <div class="svg-chart-container" id="bar-chart-container">
+              <!-- Weekly SVG Chart Rendered on App.js Load -->
+              <svg class="chart-svg" id="weekly-bar-svg" viewBox="0 0 500 280">
+                <defs>
+                  <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="var(--accent-primary)" />
+                    <stop offset="100%" stop-color="var(--accent-secondary)" stop-opacity="0.2" />
+                  </linearGradient>
+                </defs>
+                <!-- SVG base grid will be inserted programmatically -->
+              </svg>
+              <div class="chart-tooltip" id="chart-tooltip">120 mins</div>
+            </div>
+          </div>
+          
+          <!-- Donut Graph: Category Allocations -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div class="chart-card-title">Time distribution by Category</div>
+            </div>
+            
+            <div class="svg-chart-container" id="donut-chart-container">
+              <!-- Category Donut SVG Rendered on App.js Load -->
+              <svg class="chart-svg" id="category-donut-svg" viewBox="0 0 200 200">
+                <!-- SVG segments inserted dynamically -->
+              </svg>
+            </div>
+            
+            <div class="chart-legends" id="donut-legend-container">
+              <!-- Legends dynamically populated -->
+            </div>
+          </div>
+          
+        </div>
+      </section>
+
+      <!-- ==========================================
+           3. HISTORY LOG SCREEN
+           ========================================== -->
+      <section class="screen" id="history-screen">
+        <div class="screen-header">
+          <h1>Focus History</h1>
+          <p>Browse through your full chronological history of completed focus sessions.</p>
+        </div>
+        
+        <!-- Interactive Filters and Search Bar -->
+        <div class="history-filters">
+          <div class="timer-mode-selector" style="margin-bottom: 0;">
+            <button class="mode-btn active" data-filter="all" id="history-filter-all">All Logs</button>
+            <button class="mode-btn" data-filter="focus" id="history-filter-focus">Focus Only</button>
+            <button class="mode-btn" data-filter="breaks" id="history-filter-breaks">Breaks Only</button>
+          </div>
+          
+          <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" class="search-input" id="history-search-input" placeholder="Search task name or category...">
+          </div>
+        </div>
+        
+        <!-- Table Log Wrapper -->
+        <div class="history-list-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Objective Task</th>
+                <th>Category</th>
+                <th>Tracking Mode</th>
+                <th>Duration</th>
+                <th>Completed Time</th>
+                <th>Focus Rewards</th>
+                <th style="width: 80px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- Populated dynamically via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           4. ACHIEVEMENTS SCREEN
+           ========================================== -->
+      <section class="screen" id="achievements-screen">
+        <div class="screen-header">
+          <h1>Milestones & Badges</h1>
+          <p>Gain accomplishments, set streaks, and unlock special badges to mark your productivity journey.</p>
+        </div>
+        
+        <div class="achievements-grid" id="achievements-cards-container">
+          <!-- Dynamic Achievement Cards Filled via app.js -->
+        </div>
+      </section>
+
+      <!-- ==========================================
+           5. CONFIGURATION SETTINGS SCREEN
+           ========================================== -->
+      <section class="screen" id="settings-screen">
+        <div class="screen-header">
+          <h1>Control Settings</h1>
+          <p>Fine-tune timers, interval lengths, automation settings, and manage your browser storage.</p>
+        </div>
+        
+         <div class="settings-wrapper">
+          <!-- Focus Preferences Card -->
+          <div class="settings-card">
+            <h2 class="settings-card-title"><i class="fa-solid fa-toggle-on"></i> Focus Preferences</h2>
+            
+            <div class="switch-row">
+              <div class="switch-label-container">
+                <div class="switch-label-title">Auto-Start Breaks</div>
+                <div class="switch-label-desc">Automatically trigger rest period timers when focus timer ends</div>
+              </div>
+              <label class="switch-toggle-btn">
+                <input type="checkbox" id="set-auto-break">
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            
+            <div class="switch-row">
+              <div class="switch-label-container">
+                <div class="switch-label-title">Auto-Start Focus Cycles</div>
+                <div class="switch-label-desc">Launch the next focus session as soon as the break duration ends</div>
+              </div>
+              <label class="switch-toggle-btn">
+                <input type="checkbox" id="set-auto-focus">
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            
+            <div class="switch-row">
+              <div class="switch-label-container">
+                <div class="switch-label-title">Sound Alerts</div>
+                <div class="switch-label-desc">Play chime notification sounds when timer finishes</div>
+              </div>
+              <label class="switch-toggle-btn">
+                <input type="checkbox" id="set-audio-alerts" checked>
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            
+            <button class="btn-primary" style="margin-top: 1.5rem;" id="btn-save-settings">
+              <i class="fa-solid fa-floppy-disk"></i> Save Preferences
+            </button>
+          </div>
+          
+          <!-- Data Reset Danger Card -->
+          <div class="settings-card" style="border-color: rgba(244, 63, 94, 0.2); background: rgba(244, 63, 94, 0.02);">
+            <h2 class="settings-card-title" style="color: var(--long-color); border-color: rgba(244, 63, 94, 0.1);"><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</h2>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.5rem;">
+              Resetting will completely wipe all locked profiles, XP ranks, streaks, achievements, and all focus history charts. This operation cannot be undone.
+            </p>
+            <button class="btn-danger" id="btn-factory-reset">
+              <i class="fa-solid fa-trash-can"></i> Factory Reset Profiles & Data
+            </button>
+          </div>
+        </div>
+      </section>
+      
+    </main>
+  </div>
+
+  <!-- LEVEL UP GLOWING FLOATING BANNER -->
+  <div class="level-up-toast" id="level-up-toast">
+    <i class="fa-solid fa-trophy level-up-icon"></i>
+    <div class="level-up-message">
+      <h3 style="color: #fbbf24;">LEVEL UP UNLOCKED!</h3>
+      <p id="level-up-message-text">Congratulations, you reached Rank level 2!</p>
+    </div>
+  </div>
+
+  <!-- Main System Javascript logic -->
+  <script src="app.js?v=2.7"></script>
+</body>
+</html>
