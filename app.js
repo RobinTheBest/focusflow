@@ -14,7 +14,8 @@ const DEFAULT_STATE = {
     streak: 0,
     lastActiveDate: null,
     totalFocusTime: 0, // in minutes
-    totalTasksCompleted: 0
+    totalTasksCompleted: 0,
+    activeTimer: null
   },
   settings: {
     durations: {
@@ -84,6 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTodoList();
   updateThemeAndDescription();
   syncTimerDisplay();
+  
+  // Restore loaded timer UI state & resume if running
+  initTimerFromState();
   
   // Browser window/tab visibility change (timer correction safeguard)
   document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -195,9 +199,43 @@ function loadData(overrideUsername) {
   // Recalculate completed tasks count from current daily todos to ensure alignment
   state.profile.totalTasksCompleted = state.todos.filter(t => t.completed).length;
   
-  // Set active durations inside state
-  timer.timeLeft = state.settings.durations.pomodoro * 60;
-  timer.totalSeconds = state.settings.durations.pomodoro * 60;
+  // Set active durations inside state or restore saved active timer
+  if (state.profile.activeTimer) {
+    const saved = state.profile.activeTimer;
+    timer.mode = saved.mode || 'pomodoro';
+    timer.status = saved.status || 'idle';
+    timer.timeLeft = typeof saved.timeLeft === 'number' ? saved.timeLeft : state.settings.durations.pomodoro * 60;
+    timer.totalSeconds = typeof saved.totalSeconds === 'number' ? saved.totalSeconds : state.settings.durations.pomodoro * 60;
+    timer.secondsTracked = typeof saved.secondsTracked === 'number' ? saved.secondsTracked : 0;
+    timer.activeTask = saved.activeTask || '';
+    timer.activeCategory = saved.activeCategory || 'Coding';
+    timer.isTaskLocked = saved.isTaskLocked || false;
+    
+    // Adjust time elapsed since page was unloaded if it was running
+    if (timer.status === 'running' && typeof saved.lastSavedTime === 'number') {
+      const elapsed = (Date.now() - saved.lastSavedTime) / 1000;
+      if (timer.mode === 'stopwatch') {
+        timer.timeLeft += elapsed;
+        timer.secondsTracked += elapsed;
+      } else {
+        timer.timeLeft -= elapsed;
+        timer.secondsTracked += elapsed;
+        if (timer.timeLeft <= 0) {
+          timer.timeLeft = 0;
+          timer.status = 'idle';
+        }
+      }
+    }
+  } else {
+    timer.timeLeft = state.settings.durations.pomodoro * 60;
+    timer.totalSeconds = state.settings.durations.pomodoro * 60;
+    timer.status = 'idle';
+    timer.mode = 'pomodoro';
+    timer.secondsTracked = 0;
+    timer.activeTask = '';
+    timer.activeCategory = 'Coding';
+    timer.isTaskLocked = false;
+  }
   
   checkDailyStreakValidation();
 }
@@ -219,6 +257,21 @@ function saveData() {
   
   localStorage.setItem('focusflow_users_db', JSON.stringify(usersDb));
   localStorage.setItem('focusflow_active_user', activeUser);
+}
+
+function saveTimerState() {
+  state.profile.activeTimer = {
+    mode: timer.mode,
+    status: timer.status,
+    timeLeft: timer.timeLeft,
+    totalSeconds: timer.totalSeconds,
+    secondsTracked: timer.secondsTracked,
+    activeTask: timer.activeTask,
+    activeCategory: timer.activeCategory,
+    isTaskLocked: timer.isTaskLocked,
+    lastSavedTime: Date.now()
+  };
+  saveData();
 }
 
 // Daily focus streak evaluation logic
@@ -367,6 +420,7 @@ function changeTimerMode(mode) {
   updateThemeAndDescription();
   syncTimerDisplay();
   updateTimerControlButtons();
+  saveTimerState();
 }
 
 function startTimer() {
@@ -384,6 +438,7 @@ function startTimer() {
   timer.intervalId = setInterval(tick, 100); // Poll 10 times a second for delta accuracy
 
   updateTimerControlButtons();
+  saveTimerState();
 }
 
 function pauseTimer() {
@@ -394,6 +449,7 @@ function pauseTimer() {
   document.getElementById('timer-display-digits').classList.remove('ticking');
   
   updateTimerControlButtons();
+  saveTimerState();
 }
 
 function resetTimer() {
@@ -416,6 +472,7 @@ function resetTimer() {
 
   syncTimerDisplay();
   updateTimerControlButtons();
+  saveTimerState();
 }
 
 // Delta Time tick function to prevent browser backgrounding latency issues
@@ -425,6 +482,8 @@ function tick() {
   const now = Date.now();
   const delta = (now - timer.lastTick) / 1000;
   timer.lastTick = now;
+
+  const oldTime = Math.floor(timer.timeLeft);
 
   if (timer.mode === 'stopwatch') {
     timer.timeLeft += delta;
@@ -438,6 +497,11 @@ function tick() {
       completeSession();
       return;
     }
+  }
+
+  const newTime = Math.floor(timer.timeLeft);
+  if (oldTime !== newTime) {
+    saveTimerState();
   }
 
   syncTimerDisplay();
@@ -624,6 +688,7 @@ function setupTaskForm() {
       btnLock.innerHTML = '<i class="fa-solid fa-lock"></i> Lock Focus Task';
       btnLock.classList.remove('btn-secondary');
       btnLock.classList.add('btn-primary');
+      saveTimerState();
     } else {
       const rawTask = taskInput.value.trim();
       timer.activeTask = rawTask || 'General Concentration';
@@ -638,6 +703,7 @@ function setupTaskForm() {
       // Update Timer board Display
       activePillText.textContent = `${timer.activeTask} [${timer.activeCategory}]`;
       activePill.classList.add('active');
+      saveTimerState();
     }
   });
 }
@@ -1973,7 +2039,7 @@ function switchActiveProfile(newUsername) {
   
   // 5. Hard refresh views & redrawing stats
   renderApp();
-  changeTimerMode(timer.mode);
+  initTimerFromState();
   
   // Refresh active screen datasets
   const activeScreen = document.querySelector('.screen.active');
@@ -2122,6 +2188,7 @@ function renderTodoList() {
       if (activePillText) activePillText.textContent = `${timer.activeTask} [${timer.activeCategory}]`;
       if (activePill) activePill.classList.add('active');
       
+      saveTimerState();
       renderTodoList();
     });
     
@@ -2161,5 +2228,111 @@ function playTriadTickXPChime() {
     osc.start(now + idx * 0.05);
     osc.stop(now + idx * 0.05 + 0.26);
   });
+}
+
+function initTimerFromState() {
+  // 1. Sync the active mode button styling
+  const modeButtons = document.querySelectorAll('.timer-mode-selector button');
+  modeButtons.forEach(b => {
+    if (b.getAttribute('data-mode') === timer.mode) {
+      b.classList.add('active');
+    } else {
+      b.classList.remove('active');
+    }
+  });
+
+  // 2. Set global visual theme based on current mode
+  document.body.className = '';
+  const workSliderGroup = document.getElementById('work-slider-group');
+  const breakSliderGroup = document.getElementById('break-slider-group');
+  const vibeBox = document.getElementById('focus-vibe-box');
+  const slidersCard = document.getElementById('session-sliders-card');
+
+  if (timer.mode === 'pomodoro') {
+    document.body.classList.add('theme-focus');
+    if (workSliderGroup) workSliderGroup.style.display = 'block';
+    if (breakSliderGroup) breakSliderGroup.style.display = 'block';
+    if (vibeBox) vibeBox.style.display = 'flex';
+    if (slidersCard) slidersCard.style.display = 'block';
+    const displayLabel = document.getElementById('timer-display-label');
+    if (displayLabel) displayLabel.textContent = 'Deep Focus';
+  } else if (timer.mode === 'short-break') {
+    document.body.classList.add('theme-short');
+    if (workSliderGroup) workSliderGroup.style.display = 'none';
+    if (breakSliderGroup) breakSliderGroup.style.display = 'block';
+    if (vibeBox) vibeBox.style.display = 'flex';
+    if (slidersCard) slidersCard.style.display = 'block';
+    const displayLabel = document.getElementById('timer-display-label');
+    if (displayLabel) displayLabel.textContent = 'Short Rest';
+  } else if (timer.mode === 'working-time') {
+    document.body.classList.add('theme-focus');
+    if (workSliderGroup) workSliderGroup.style.display = 'block';
+    if (breakSliderGroup) breakSliderGroup.style.display = 'none';
+    if (vibeBox) vibeBox.style.display = 'flex';
+    if (slidersCard) slidersCard.style.display = 'block';
+    const displayLabel = document.getElementById('timer-display-label');
+    if (displayLabel) displayLabel.textContent = 'Working Time';
+  } else if (timer.mode === 'stopwatch') {
+    document.body.classList.add('theme-focus');
+    if (workSliderGroup) workSliderGroup.style.display = 'none';
+    if (breakSliderGroup) breakSliderGroup.style.display = 'none';
+    if (vibeBox) vibeBox.style.display = 'none';
+    if (slidersCard) slidersCard.style.display = 'none';
+    const displayLabel = document.getElementById('timer-display-label');
+    if (displayLabel) displayLabel.textContent = 'Stopwatch Focus';
+  }
+
+  // 3. Restore Task Lock UI
+  const taskInput = document.getElementById('task-input-field');
+  const pillsContainer = document.getElementById('category-pills-container');
+  const btnLock = document.getElementById('btn-lock-task');
+  const activePillText = document.getElementById('timer-active-task-text');
+  const activePill = document.getElementById('timer-active-task-pill');
+
+  if (taskInput && pillsContainer && btnLock) {
+    if (timer.isTaskLocked) {
+      taskInput.value = timer.activeTask;
+      taskInput.disabled = true;
+      pillsContainer.style.pointerEvents = 'none';
+      btnLock.innerHTML = '<i class="fa-solid fa-lock-open"></i> Modify Objectives';
+      btnLock.classList.add('btn-secondary');
+      btnLock.classList.remove('btn-primary');
+      if (activePillText) activePillText.textContent = `${timer.activeTask} [${timer.activeCategory}]`;
+      if (activePill) activePill.classList.add('active');
+    } else {
+      taskInput.value = timer.activeTask;
+      taskInput.disabled = false;
+      pillsContainer.style.pointerEvents = 'auto';
+      btnLock.innerHTML = '<i class="fa-solid fa-lock"></i> Lock Focus Task';
+      btnLock.classList.remove('btn-secondary');
+      btnLock.classList.add('btn-primary');
+      if (activePill) activePill.classList.remove('active');
+    }
+  }
+
+  // Restore active category pill active state
+  if (pillsContainer) {
+    pillsContainer.querySelectorAll('.category-pill').forEach(p => {
+      if (p.getAttribute('data-category') === timer.activeCategory) {
+        p.classList.add('active');
+      } else {
+        p.classList.remove('active');
+      }
+    });
+  }
+
+  // 4. Update the play/pause buttons, displays
+  syncTimerDisplay();
+  updateTimerControlButtons();
+  updateThemeAndDescription();
+
+  // 5. If it was running, start ticking!
+  if (timer.status === 'running') {
+    timer.status = 'idle'; // reset status to allow startTimer to run
+    startTimer();
+  } else if (timer.status === 'paused') {
+    const digits = document.getElementById('timer-display-digits');
+    if (digits) digits.classList.remove('ticking');
+  }
 }
 
